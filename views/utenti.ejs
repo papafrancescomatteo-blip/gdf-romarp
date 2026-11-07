@@ -13,8 +13,7 @@
     </div>
     <div class="row">
       <div><label>Ruolo</label><select name="ruolo"><option value="finanziere">Finanziere</option><option value="ufficiale">Ufficiale</option><option value="prefettura">Prefettura</option></select></div>
-      <div><label>Matricola (vuota = automatica)</label><input name="matricola" placeholder="GF-00"></div>
-      <div><label>ID Discord (facoltativo)</label><input name="discordId" inputmode="numeric"></div>
+      <div><label>Matricola</label><input name="matricola"></div>
       <div><label>Grado</label><select name="grado"><option value="">—</option><% gradi.forEach(function(g){ %><option value="<%= g._id %>"><%= g.nome %></option><% }) %></select></div>
     </div>
     <button>Crea utente</button>
@@ -23,7 +22,7 @@
 
 <div class="card scroll">
 <table>
-  <thead><tr><th>Utente</th><th>Grado</th><th>Ruolo</th><th>ID Discord</th><th>Stato</th><th>Azioni</th></tr></thead>
+  <thead><tr><th>Utente</th><th>Grado</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead>
   <tbody>
   <% utenti.forEach(function(u){ %>
     <tr>
@@ -35,13 +34,6 @@
           <select name="ruolo" onchange="this.form.submit()">
             <% ['finanziere','ufficiale','prefettura'].forEach(function(r){ %><option <%= u.ruolo === r ? 'selected' : '' %>><%= r %></option><% }) %>
           </select>
-        </form>
-      </td>
-      <td>
-        <form method="post" action="/utenti/<%= u._id %>/discord" class="inline">
-          <input type="hidden" name="_csrf" value="<%= csrf %>">
-          <input name="discordId" value="<%= u.discordId %>" placeholder="non collegato" inputmode="numeric" style="width:170px">
-          <button class="sec">Salva</button>
         </form>
       </td>
       <td><%= u.attivo ? 'Attivo' : 'Disattivato' %></td>

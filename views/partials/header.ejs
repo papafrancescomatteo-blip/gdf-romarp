@@ -15,7 +15,7 @@
     <a href="/direttive">Direttive</a>
     <% if (me.ruolo !== 'finanziere') { %><a href="/matricole">Matricole</a><a href="/gestioni">Gestioni</a><% } %>
     <% if (me.ruolo === 'finanziere' || me.ruolo === 'ufficiale') { %><a href="/provvedimenti">Provvedimenti</a><% } %>
-    <% if (me.ruolo === 'ufficiale') { %><a href="/turni">Turni</a><a href="/logs">Registro</a><a href="/utenti">Utenti</a><a href="/gradi">Gradi</a><a href="/impostazioni">Impostazioni</a><% } %>
+    <% if (me.ruolo === 'ufficiale') { %><a href="/logs">Registro</a><a href="/utenti">Utenti</a><a href="/gradi">Gradi</a><a href="/impostazioni">Impostazioni</a><% } %>
   </nav>
   <form method="post" action="/logout" class="who">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
@@ -25,4 +25,4 @@
 </header>
 <% } %>
 <main class="wrap">
-<% if (flash && path !== '/login') { %><div class="flash <%= flash.type || 'ok' %>"><%= flash.text %></div><% } %>
+<% if (flash) { %><div class="flash <%= flash.type || 'ok' %>"><%= flash.text %></div><% } %>

@@ -23,7 +23,6 @@ const User = mongoose.model(
       matricola: { type: String, trim: true, default: '' },
       grado: { type: Schema.Types.ObjectId, ref: 'Grado', default: null },
       attivo: { type: Boolean, default: true },
-      discordId: { type: String, trim: true, default: '' },
     },
     { timestamps: true }
   )
@@ -76,7 +75,7 @@ const Categoria = mongoose.model(
   'Categoria',
   new Schema({
     nome: { type: String, required: true, trim: true },
-    tipo: { type: String, enum: ['avvertimento', 'sospensione', 'restrizione', 'promozione', 'merito', 'degradazione', 'licenziamento', 'altro'], default: 'avvertimento' },
+    tipo: { type: String, enum: ['avvertimento', 'sospensione', 'altro'], default: 'avvertimento' },
   })
 );
 
@@ -86,7 +85,7 @@ const Provvedimento = mongoose.model(
     {
       utente: { type: Schema.Types.ObjectId, ref: 'User', required: true },
       categoria: { type: String, required: true },
-      tipo: { type: String, enum: ['avvertimento', 'sospensione', 'restrizione', 'promozione', 'merito', 'degradazione', 'licenziamento', 'altro'], default: 'avvertimento' },
+      tipo: { type: String, enum: ['avvertimento', 'sospensione', 'altro'], default: 'avvertimento' },
       motivo: { type: String, default: '' },
       emessoDa: { type: Schema.Types.ObjectId, ref: 'User' },
       dataScadenza: { type: Date, default: null },
@@ -110,23 +109,9 @@ const Log = mongoose.model(
   )
 );
 
-const Turno = mongoose.model(
-  'Turno',
-  new Schema(
-    {
-      utente: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-      inizio: { type: Date, required: true },
-      fine: { type: Date, default: null },
-      durataMin: { type: Number, default: 0 },
-      chiusoDa: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-    },
-    { timestamps: true }
-  )
-);
-
 const Setting = mongoose.model(
   'Setting',
   new Schema({ key: { type: String, unique: true }, value: String })
 );
 
-module.exports = { User, Grado, Link, Gestione, Categoria, Provvedimento, Log, Setting, Turno, ESITI };
+module.exports = { User, Grado, Link, Gestione, Categoria, Provvedimento, Log, Setting, ESITI };

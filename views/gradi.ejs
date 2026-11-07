@@ -3,12 +3,6 @@
 <p class="sub">Per le spalline: copia le immagini nella cartella <code>public/gradi/</code> del progetto e indica qui il percorso, ad esempio <code>/gradi/finanziere.png</code>. Ordine più alto = grado più alto.</p>
 
 <div class="card">
-  <h2>Spalline automatiche</h2>
-  <p class="muted">Carica le immagini in <code>public/gradi/</code> chiamandole come il grado (es. <code>finanziere-scelto.png</code>, <code>maresciallo-capo.png</code>): al riavvio e con questo pulsante vengono collegate ai gradi senza immagine.</p>
-  <form method="post" action="/gradi/sync"><input type="hidden" name="_csrf" value="<%= csrf %>"><button>Collega le spalline</button></form>
-</div>
-
-<div class="card">
   <h2>Nuovo grado</h2>
   <form method="post" action="/gradi">
     <input type="hidden" name="_csrf" value="<%= csrf %>">

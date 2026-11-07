@@ -1,13 +1,12 @@
 require('dotenv').config();
 const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
-const { User, Grado, Link, Gestione, Categoria, Provvedimento, Log, Setting, Turno, ESITI } = require('./models');
+const { User, Grado, Link, Gestione, Categoria, Provvedimento, Log, Setting, ESITI } = require('./models');
 
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
@@ -26,7 +25,6 @@ app.locals.path = '';
 app.locals.ESITI = ESITI;
 app.locals.d = (x) => (x ? new Date(x).toLocaleDateString('it-IT') : '—');
 app.locals.dt = (x) => (x ? new Date(x).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' }) : '—');
-app.locals.fmtMin = (m) => `${Math.floor((m || 0) / 60)}h ${String((m || 0) % 60).padStart(2, '0')}m`;
 app.locals.nomeCompleto = (u) => (u ? `${u.nome} ${u.cognome}`.trim() || u.username : '—');
 
 app.use(express.urlencoded({ extended: true, limit: '200kb' }));
@@ -96,88 +94,6 @@ const setSetting = (key, value) => Setting.findOneAndUpdate({ key }, { value }, 
 const isUrl = (s) => /^https?:\/\/\S+$/i.test(s || '');
 const tempPassword = () => crypto.randomBytes(5).toString('hex');
 const nomeU = (u) => (u ? `${u.nome} ${u.cognome}`.trim() || u.username : '—');
-
-// matricola nel formato GF-xx ('' = vuota, null = non valida)
-const normMatricola = (s) => {
-  const t = String(s || '').trim().toUpperCase();
-  if (!t) return '';
-  const m = /^(?:GF-?)?(\d{1,4})$/.exec(t);
-  return m ? `GF-${m[1].padStart(2, '0')}` : null;
-};
-const prossimaMatricola = async () => {
-  const tutti = await User.find({ matricola: /^GF-\d+$/ }, 'matricola');
-  const max = tutti.reduce((n, u) => Math.max(n, parseInt(u.matricola.slice(3), 10) || 0), 0);
-  return `GF-${String(max + 1).padStart(2, '0')}`;
-};
-
-// settimane e turni
-const lunedi = (d = new Date()) => {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
-  return x;
-};
-const isoDay = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const minutiRange = async (from, to, utente = null) => {
-  const q = { inizio: { $gte: from, $lt: to } };
-  if (utente) q.utente = utente;
-  const out = {};
-  for (const t of await Turno.find(q)) {
-    const m = t.fine ? t.durataMin : Math.round((Date.now() - t.inizio) / 60000);
-    out[t.utente] = (out[t.utente] || 0) + m;
-  }
-  return out;
-};
-
-// ruolo "In servizio" su Discord (opzionale: serve DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_ROLE_SERVIZIO)
-const discordOn = () =>
-  !!(process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID && process.env.DISCORD_ROLE_SERVIZIO);
-async function discordRole(user, add) {
-  if (!discordOn() || !user.discordId) return { ok: false, skipped: true };
-  try {
-    const r = await fetch(
-      `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${user.discordId}/roles/${process.env.DISCORD_ROLE_SERVIZIO}`,
-      {
-        method: add ? 'PUT' : 'DELETE',
-        headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`, 'X-Audit-Log-Reason': 'Turno GdF Roma RP' },
-      }
-    );
-    return { ok: r.ok };
-  } catch (e) {
-    console.error('Discord:', e.message);
-    return { ok: false };
-  }
-}
-async function chiudiTurno(t, user, chiusoDa = null) {
-  t.fine = new Date();
-  t.durataMin = Math.max(0, Math.round((t.fine - t.inizio) / 60000));
-  t.chiusoDa = chiusoDa;
-  await t.save();
-  return discordRole(user, false);
-}
-
-// spalline: collega public/gradi/<nome-del-grado>.png ai gradi senza immagine
-const slug = (x) =>
-  String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-async function syncSpalline() {
-  let files = [];
-  try {
-    files = fs.readdirSync(path.join(__dirname, 'public', 'gradi')).filter((f) => /\.(png|jpe?g|webp|svg|gif)$/i.test(f));
-  } catch (e) {}
-  const map = new Map(files.map((f) => [slug(f.replace(/\.[^.]+$/, '')), f]));
-  let collegati = 0;
-  const senza = [];
-  for (const g of await Grado.find()) {
-    const f = map.get(slug(g.nome));
-    if (f && !g.immagine) {
-      g.immagine = '/gradi/' + f;
-      await g.save();
-      collegati += 1;
-    } else if (!g.immagine) senza.push(g.nome);
-  }
-  return { collegati, senza, file: files.length };
-}
 
 // ---------- login ----------
 const tentativi = new Map();
@@ -249,12 +165,7 @@ app.get(
   need(),
   ah(async (req, res) => {
     const r = req.user.ruolo;
-    const data = { title: 'Home', turno: null, minSettimana: 0, discordOn: discordOn() };
-    if (r !== 'prefettura') {
-      data.turno = await Turno.findOne({ utente: req.user._id, fine: null });
-      const da = lunedi();
-      data.minSettimana = (await minutiRange(da, new Date(da.getTime() + 7 * 864e5), req.user._id))[req.user._id] || 0;
-    }
+    const data = { title: 'Home' };
     if (r === 'finanziere') {
       const gest = await Gestione.find({ 'voci.utente': req.user._id }).sort({ settimana: -1 }).limit(2);
       data.gestioni = gest.map((g) => ({
@@ -268,7 +179,6 @@ app.get(
     } else if (r === 'ufficiale') {
       data.nFinanzieri = await User.countDocuments({ ruolo: 'finanziere', attivo: true });
       data.nProvvAttivi = await Provvedimento.countDocuments({ attivo: true });
-      data.inServizio = await Turno.countDocuments({ fine: null });
       data.ultimaGestione = await Gestione.findOne().sort({ settimana: -1 });
       data.logs = await Log.find().sort({ createdAt: -1 }).limit(6).populate('autore bersaglio');
       // finanzieri senza gestione nell'ultima settimana registrata
@@ -359,11 +269,7 @@ app.post(
   ah(async (req, res) => {
     const u = await User.findById(req.params.id).populate('grado');
     if (!u) return res.redirect('/matricole');
-    const matricola = normMatricola(req.body.matricola);
-    if (matricola === null) {
-      flash(req, 'La matricola deve avere il formato GF-xx (es. GF-07).', 'err');
-      return res.redirect('/matricole');
-    }
+    const matricola = (req.body.matricola || '').trim();
     if (matricola) {
       const dup = await User.findOne({ matricola, _id: { $ne: u._id } });
       if (dup) {
@@ -407,13 +313,7 @@ app.get(
   ah(async (req, res) => {
     const finanzieri = await User.find({ ruolo: 'finanziere', attivo: true }).populate('grado');
     finanzieri.sort((a, b) => (b.grado?.ordine || 0) - (a.grado?.ordine || 0) || a.cognome.localeCompare(b.cognome));
-    const da = req.query.settimana ? lunedi(new Date(req.query.settimana + 'T12:00:00')) : lunedi();
-    const mins = await minutiRange(da, new Date(da.getTime() + 7 * 864e5));
-    const ore = {};
-    finanzieri.forEach((u) => {
-      ore[u._id] = Math.round(((mins[u._id] || 0) / 60) * 2) / 2;
-    });
-    res.render('gestione-nuova', { title: 'Nuova gestione', finanzieri, ore, settimana: isoDay(da) });
+    res.render('gestione-nuova', { title: 'Nuova gestione', finanzieri });
   })
 );
 
@@ -456,13 +356,12 @@ app.get(
       const miei = await Provvedimento.find({ utente: req.user._id }).sort({ createdAt: -1 }).populate('emessoDa', 'nome cognome');
       return res.render('provvedimenti-miei', { title: 'I miei provvedimenti', miei });
     }
-    const [lista, finanzieri, categorie, gradi] = await Promise.all([
+    const [lista, finanzieri, categorie] = await Promise.all([
       Provvedimento.find().sort({ createdAt: -1 }).limit(200).populate('utente emessoDa', 'nome cognome matricola'),
       User.find({ attivo: true, ruolo: { $ne: 'prefettura' } }).sort({ cognome: 1 }),
       Categoria.find().sort({ nome: 1 }),
-      Grado.find().sort({ ordine: -1 }),
     ]);
-    res.render('provvedimenti', { title: 'Provvedimenti', lista, finanzieri, categorie, gradi });
+    res.render('provvedimenti', { title: 'Provvedimenti', lista, finanzieri, categorie });
   })
 );
 
@@ -470,46 +369,22 @@ app.post(
   '/provvedimenti',
   need('ufficiale'),
   ah(async (req, res) => {
-    const { utente, categoria, motivo, dataScadenza, grado } = req.body;
+    const { utente, categoria, motivo, dataScadenza } = req.body;
     const cat = mongoose.isValidObjectId(categoria) ? await Categoria.findById(categoria) : null;
     const u = mongoose.isValidObjectId(utente) ? await User.findById(utente) : null;
     if (!cat || !u || !(motivo || '').trim()) {
       flash(req, 'Seleziona finanziere, categoria e indica il motivo.', 'err');
       return res.redirect('/provvedimenti');
     }
-    let extra = '';
-    if (cat.tipo === 'promozione' || cat.tipo === 'degradazione') {
-      const ng = mongoose.isValidObjectId(grado) ? await Grado.findById(grado) : null;
-      if (!ng) {
-        flash(req, 'Per promozioni e degradazioni scegli il nuovo grado.', 'err');
-        return res.redirect('/provvedimenti');
-      }
-      const vecchio = u.grado ? (await Grado.findById(u.grado))?.nome : null;
-      u.grado = ng._id;
-      await u.save();
-      extra = ` [${vecchio || '—'} → ${ng.nome}]`;
-    }
-    if (cat.tipo === 'licenziamento') {
-      if (String(u._id) === String(req.user._id)) {
-        flash(req, 'Non puoi licenziare te stesso.', 'err');
-        return res.redirect('/provvedimenti');
-      }
-      const aperto = await Turno.findOne({ utente: u._id, fine: null });
-      if (aperto) await chiudiTurno(aperto, u, req.user._id);
-      u.attivo = false;
-      await u.save();
-      extra = ' [account disattivato]';
-    }
     await Provvedimento.create({
       utente: u._id,
       categoria: cat.nome,
       tipo: cat.tipo,
-      motivo: motivo.trim().slice(0, 1000) + extra,
+      motivo: motivo.trim().slice(0, 1000),
       emessoDa: req.user._id,
-      attivo: ['avvertimento', 'sospensione', 'restrizione'].includes(cat.tipo),
       dataScadenza: dataScadenza ? new Date(dataScadenza) : null,
     });
-    await log(req, 'provvedimento_applicato', `${cat.nome} a ${nomeU(u)}: ${motivo.trim().slice(0, 200)}${extra}`, u._id);
+    await log(req, 'provvedimento_applicato', `${cat.nome} a ${nomeU(u)}: ${motivo.trim().slice(0, 200)}`, u._id);
     flash(req, 'Provvedimento registrato.');
     res.redirect('/provvedimenti');
   })
@@ -528,77 +403,6 @@ app.post(
     }
     flash(req, 'Provvedimento chiuso.');
     res.redirect('/provvedimenti');
-  })
-);
-
-// ---------- turni (shift) ----------
-app.post(
-  '/turno/inizio',
-  need('finanziere', 'ufficiale'),
-  ah(async (req, res) => {
-    if (await Turno.exists({ utente: req.user._id, fine: null })) {
-      flash(req, 'Sei già in servizio.', 'err');
-      return res.redirect('/');
-    }
-    const sosp = await Provvedimento.findOne({
-      utente: req.user._id,
-      tipo: 'sospensione',
-      attivo: true,
-      $or: [{ dataScadenza: null }, { dataScadenza: { $gt: new Date() } }],
-    });
-    if (sosp) {
-      flash(req, `Sei sospeso dal servizio (${sosp.categoria}): non puoi iniziare un turno.`, 'err');
-      return res.redirect('/');
-    }
-    await Turno.create({ utente: req.user._id, inizio: new Date() });
-    const d = await discordRole(req.user, true);
-    if (d.skipped || d.ok) flash(req, d.ok ? 'Turno iniziato: ruolo "In servizio" assegnato su Discord.' : 'Turno iniziato.');
-    else flash(req, 'Turno iniziato, ma non sono riuscito ad assegnare il ruolo su Discord.', 'err');
-    res.redirect('/');
-  })
-);
-
-app.post(
-  '/turno/fine',
-  need('finanziere', 'ufficiale'),
-  ah(async (req, res) => {
-    const t = await Turno.findOne({ utente: req.user._id, fine: null });
-    if (!t) {
-      flash(req, 'Non hai un turno in corso.', 'err');
-      return res.redirect('/');
-    }
-    const d = await chiudiTurno(t, req.user, req.user._id);
-    const durata = app.locals.fmtMin(t.durataMin);
-    if (d.skipped || d.ok) flash(req, `Turno concluso: ${durata}.${d.ok ? ' Ruolo "In servizio" rimosso.' : ''}`);
-    else flash(req, `Turno concluso (${durata}), ma non sono riuscito a rimuovere il ruolo su Discord.`, 'err');
-    res.redirect('/');
-  })
-);
-
-app.get(
-  '/turni',
-  need('ufficiale'),
-  ah(async (req, res) => {
-    const aperti = await Turno.find({ fine: null }).populate({ path: 'utente', populate: { path: 'grado' } }).sort({ inizio: 1 });
-    const da = lunedi();
-    const mins = await minutiRange(da, new Date(da.getTime() + 7 * 864e5));
-    const tutti = await User.find({ ruolo: 'finanziere', attivo: true }).populate('grado');
-    const classifica = tutti.map((u) => ({ u, min: mins[u._id] || 0 })).sort((a, b) => b.min - a.min);
-    res.render('turni', { title: 'Turni', aperti, classifica, da, discordOn: discordOn() });
-  })
-);
-
-app.post(
-  '/turni/:id/chiudi',
-  need('ufficiale'),
-  ah(async (req, res) => {
-    const t = await Turno.findById(req.params.id).populate('utente');
-    if (t && !t.fine) {
-      await chiudiTurno(t, t.utente, req.user._id);
-      await log(req, 'turno_chiuso_forzato', `Chiuso il turno di ${nomeU(t.utente)} (${app.locals.fmtMin(t.durataMin)})`, t.utente._id);
-    }
-    flash(req, 'Turno chiuso.');
-    res.redirect('/turni');
   })
 );
 
@@ -630,7 +434,7 @@ app.post(
   '/utenti',
   need('ufficiale'),
   ah(async (req, res) => {
-    const { username, nome, cognome, ruolo, matricola, grado, discordId } = req.body;
+    const { username, nome, cognome, ruolo, matricola, grado } = req.body;
     if (!username || !nome || !cognome || !['finanziere', 'ufficiale', 'prefettura'].includes(ruolo)) {
       flash(req, 'Compila username, nome, cognome e ruolo.', 'err');
       return res.redirect('/utenti');
@@ -639,24 +443,13 @@ app.post(
       flash(req, 'Username già esistente.', 'err');
       return res.redirect('/utenti');
     }
-    let mat = normMatricola(matricola);
-    if (mat === null) {
-      flash(req, 'La matricola deve avere il formato GF-xx (es. GF-07).', 'err');
-      return res.redirect('/utenti');
-    }
-    if (mat && (await User.exists({ matricola: mat }))) {
-      flash(req, `La matricola ${mat} è già assegnata.`, 'err');
-      return res.redirect('/utenti');
-    }
-    if (!mat && ruolo !== 'prefettura') mat = await prossimaMatricola();
     const pwd = tempPassword();
     const u = await User.create({
       username,
       nome,
       cognome,
       ruolo,
-      discordId: /^\d{17,20}$/.test(discordId || '') ? discordId : '',
-      matricola: mat,
+      matricola: (matricola || '').trim(),
       grado: mongoose.isValidObjectId(grado) ? grado : null,
       passwordHash: await bcrypt.hash(pwd, 10),
     });
@@ -703,22 +496,6 @@ app.post(
 );
 
 app.post(
-  '/utenti/:id/discord',
-  need('ufficiale'),
-  ah(async (req, res) => {
-    const id = String(req.body.discordId || '').trim();
-    if (id && !/^\d{17,20}$/.test(id)) {
-      flash(req, "L'ID Discord è un numero di 17-20 cifre.", 'err');
-      return res.redirect('/utenti');
-    }
-    const u = await User.findByIdAndUpdate(req.params.id, { discordId: id });
-    if (u) await log(req, 'discord_collegato', `${u.username}: ID Discord ${id || 'rimosso'}`, u._id);
-    flash(req, 'ID Discord aggiornato.');
-    res.redirect('/utenti');
-  })
-);
-
-app.post(
   '/utenti/:id/attivo',
   need('ufficiale'),
   ah(async (req, res) => {
@@ -758,18 +535,6 @@ app.post(
     await Grado.create({ nome, ordine: Number(ordine) || 0, immagine: (immagine || '').trim() });
     await log(req, 'grado_aggiunto', nome);
     flash(req, 'Grado aggiunto.');
-    res.redirect('/gradi');
-  })
-);
-
-app.post(
-  '/gradi/sync',
-  need('ufficiale'),
-  ah(async (req, res) => {
-    const r = await syncSpalline();
-    if (!r.file) flash(req, 'Nessuna immagine trovata in public/gradi.', 'err');
-    else if (r.senza.length) flash(req, `Collegate ${r.collegati} spalline. Senza immagine: ${r.senza.join(', ')}.`);
-    else flash(req, `Collegate ${r.collegati} spalline. Tutti i gradi hanno l'immagine.`);
     res.redirect('/gradi');
   })
 );
@@ -875,25 +640,13 @@ async function seed() {
     ];
     await Grado.insertMany(gradi.map((nome, i) => ({ nome, ordine: i + 1 })));
   }
-  const categorie = [
-    ['Promozione', 'promozione'],
-    ['Nota di Merito', 'merito'],
-    ['Degradazione', 'degradazione'],
-    ['Licenziamento', 'licenziamento'],
-    ['Avvertimento Inattività', 'avvertimento'],
-    ['Messaggio DM', 'altro'],
-    ['N/A', 'altro'],
-    ['Inattività Concordata', 'altro'],
-    ['Avvertimento', 'avvertimento'],
-    ['Sospensione dalla Guida', 'restrizione'],
-    ['Sospensione', 'sospensione'],
-    ['Avvertimento+Messaggio DM', 'avvertimento'],
-    ['Sospensione dal Serv. + Avv.', 'sospensione'],
-  ];
-  for (const [nome, tipo] of categorie) {
-    if (!(await Categoria.exists({ nome }))) await Categoria.create({ nome, tipo });
+  if (!(await Categoria.countDocuments())) {
+    await Categoria.insertMany([
+      { nome: 'Richiamo verbale', tipo: 'avvertimento' },
+      { nome: 'Avvertimento scritto', tipo: 'avvertimento' },
+      { nome: 'Sospensione', tipo: 'sospensione' },
+    ]);
   }
-  await syncSpalline();
   if (!(await User.exists({ ruolo: 'ufficiale' }))) {
     const username = (process.env.ADMIN_USERNAME || 'admin').toLowerCase();
     const pwd = process.env.ADMIN_PASSWORD || tempPassword();

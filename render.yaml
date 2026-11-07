@@ -17,9 +17,3 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: DISCORD_BOT_TOKEN
-        sync: false
-      - key: DISCORD_GUILD_ID
-        sync: false
-      - key: DISCORD_ROLE_SERVIZIO
-        sync: false
