@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+<h1>Foglio matricole</h1>
+<p class="sub"><%= me.ruolo === 'ufficiale' ? 'Modifica matricola e grado di ogni militare.' : 'Consultazione.' %></p>
+<div class="card scroll">
+<table>
+  <thead><tr><th>Grado</th><th>Cognome e nome</th><th>Matricola</th><th>Ruolo</th><% if (me.ruolo === 'ufficiale') { %><th>Modifica</th><% } %></tr></thead>
+  <tbody>
+  <% utenti.forEach(function(u){ %>
+    <tr>
+      <td><div class="grado"><% if (u.grado && u.grado.immagine) { %><img src="<%= u.grado.immagine %>" alt=""><% } %><%= u.grado ? u.grado.nome : '—' %></div></td>
+      <td><%= u.cognome %> <%= u.nome %></td>
+      <td><%= u.matricola || '—' %></td>
+      <td><span class="tag"><%= u.ruolo %></span></td>
+      <% if (me.ruolo === 'ufficiale') { %>
+      <td>
+        <form method="post" action="/matricole/<%= u._id %>" class="row" style="margin:0;flex-wrap:nowrap">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input name="matricola" value="<%= u.matricola %>" placeholder="GF-00" style="width:110px">
+          <select name="grado">
+            <option value="">— nessun grado —</option>
+            <% gradi.forEach(function(g){ %><option value="<%= g._id %>" <%= u.grado && String(u.grado._id) === String(g._id) ? 'selected' : '' %>><%= g.nome %></option><% }) %>
+          </select>
+          <button>Salva</button>
+        </form>
+      </td>
+      <% } %>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<%- include('partials/footer') %>

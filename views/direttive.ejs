@@ -1,0 +1,58 @@
+<%- include('partials/header') %>
+<h1>Direttive e linee guida</h1>
+<p class="sub">I documenti si aprono su Google Docs.</p>
+
+<% const nomi = { direttive: 'Direttive operative', linee_guida: 'Linee guida' }; %>
+<% sezioni.forEach(function(s){ const items = links.filter(function(l){ return l.sezione === s; }); %>
+<div class="card">
+  <h2><%= nomi[s] %></h2>
+  <% if (!items.length) { %><p class="muted">Nessun documento presente.</p><% } %>
+  <% items.forEach(function(l){ %>
+  <div class="link-item">
+    <div>
+      <a href="<%= l.url %>" target="_blank" rel="noopener noreferrer"><strong><%= l.titolo %></strong></a><br>
+      <small class="muted"><%= l.descrizione %></small>
+      <% if (me.ruolo === 'ufficiale') { %>
+      <details>
+        <summary>Modifica</summary>
+        <form method="post" action="/direttive/<%= l._id %>">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="row">
+            <div><label>Titolo</label><input name="titolo" value="<%= l.titolo %>" required></div>
+            <div><label>Link</label><input name="url" value="<%= l.url %>" required></div>
+            <div style="max-width:90px"><label>Ordine</label><input type="number" name="ordine" value="<%= l.ordine %>"></div>
+          </div>
+          <div class="row"><div><label>Descrizione</label><input name="descrizione" value="<%= l.descrizione %>"></div></div>
+          <button>Salva</button>
+        </form>
+      </details>
+      <% } %>
+    </div>
+    <% if (me.ruolo === 'ufficiale') { %>
+    <form method="post" action="/direttive/<%= l._id %>/elimina" onsubmit="return confirm('Eliminare questo link?')">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="danger">Elimina</button>
+    </form>
+    <% } %>
+  </div>
+  <% }) %>
+</div>
+<% }) %>
+
+<% if (me.ruolo === 'ufficiale') { %>
+<div class="card">
+  <h2>Aggiungi documento</h2>
+  <form method="post" action="/direttive">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row">
+      <div style="max-width:220px"><label>Sezione</label>
+        <select name="sezione"><option value="direttive">Direttive operative</option><option value="linee_guida">Linee guida</option></select></div>
+      <div><label>Titolo</label><input name="titolo" required></div>
+      <div><label>Link (Google Docs)</label><input name="url" placeholder="https://docs.google.com/..." required></div>
+      <div style="max-width:90px"><label>Ordine</label><input type="number" name="ordine" value="0"></div>
+    </div>
+    <div class="row"><div><label>Descrizione (facoltativa)</label><input name="descrizione"></div></div>
+    <button>Aggiungi</button>
+  </form>
+</div>
+<% } %>
+<%- include('partials/footer') %>

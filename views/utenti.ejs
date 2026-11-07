@@ -1,0 +1,61 @@
+<%- include('partials/header') %>
+<h1>Utenti</h1>
+<p class="sub">Crea gli account del personale. La password temporanea viene mostrata una sola volta e va cambiata al primo accesso.</p>
+
+<div class="card">
+  <h2>Nuovo utente</h2>
+  <form method="post" action="/utenti">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row">
+      <div><label>Username</label><input name="username" required></div>
+      <div><label>Nome</label><input name="nome" required></div>
+      <div><label>Cognome</label><input name="cognome" required></div>
+    </div>
+    <div class="row">
+      <div><label>Ruolo</label><select name="ruolo"><option value="finanziere">Finanziere</option><option value="ufficiale">Ufficiale</option><option value="prefettura">Prefettura</option></select></div>
+      <div><label>Matricola (vuota = automatica)</label><input name="matricola" placeholder="GF-00"></div>
+      <div><label>ID Discord (facoltativo)</label><input name="discordId" inputmode="numeric"></div>
+      <div><label>Grado</label><select name="grado"><option value="">—</option><% gradi.forEach(function(g){ %><option value="<%= g._id %>"><%= g.nome %></option><% }) %></select></div>
+    </div>
+    <button>Crea utente</button>
+  </form>
+</div>
+
+<div class="card scroll">
+<table>
+  <thead><tr><th>Utente</th><th>Grado</th><th>Ruolo</th><th>ID Discord</th><th>Stato</th><th>Azioni</th></tr></thead>
+  <tbody>
+  <% utenti.forEach(function(u){ %>
+    <tr>
+      <td><strong><%= u.cognome %> <%= u.nome %></strong><br><small class="muted"><%= u.username %></small></td>
+      <td><%= u.grado ? u.grado.nome : '—' %></td>
+      <td>
+        <form method="post" action="/utenti/<%= u._id %>/ruolo" class="inline">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <select name="ruolo" onchange="this.form.submit()">
+            <% ['finanziere','ufficiale','prefettura'].forEach(function(r){ %><option <%= u.ruolo === r ? 'selected' : '' %>><%= r %></option><% }) %>
+          </select>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/utenti/<%= u._id %>/discord" class="inline">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input name="discordId" value="<%= u.discordId %>" placeholder="non collegato" inputmode="numeric" style="width:170px">
+          <button class="sec">Salva</button>
+        </form>
+      </td>
+      <td><%= u.attivo ? 'Attivo' : 'Disattivato' %></td>
+      <td>
+        <form method="post" action="/utenti/<%= u._id %>/reset" class="inline" onsubmit="return confirm('Reimpostare la password?')">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="sec">Reset password</button>
+        </form>
+        <form method="post" action="/utenti/<%= u._id %>/attivo" class="inline">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="sec"><%= u.attivo ? 'Disattiva' : 'Riattiva' %></button>
+        </form>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<%- include('partials/footer') %>

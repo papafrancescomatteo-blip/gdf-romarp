@@ -1,0 +1,60 @@
+<%- include('partials/header') %>
+<h1>Provvedimenti</h1>
+<p class="sub">Applica avvertimenti, sospensioni e altri provvedimenti. Ogni azione finisce nel registro.</p>
+
+<div class="card">
+  <h2>Nuovo provvedimento</h2>
+  <form method="post" action="/provvedimenti">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row">
+      <div><label>Militare</label>
+        <select name="utente" required>
+          <option value="">— seleziona —</option>
+          <% finanzieri.forEach(function(u){ %><option value="<%= u._id %>"><%= u.cognome %> <%= u.nome %><%= u.matricola ? ' (' + u.matricola + ')' : '' %></option><% }) %>
+        </select></div>
+      <div><label>Categoria</label>
+        <select name="categoria" id="cat" required>
+          <option value="">— seleziona —</option>
+          <% categorie.forEach(function(c){ %><option value="<%= c._id %>" data-tipo="<%= c.tipo %>"><%= c.nome %></option><% }) %>
+        </select></div>
+      <div style="max-width:200px"><label>Scadenza (facoltativa)</label><input type="date" name="dataScadenza"></div>
+      <div id="gradoBox" style="display:none"><label>Nuovo grado</label>
+        <select name="grado"><option value="">— seleziona —</option><% gradi.forEach(function(g){ %><option value="<%= g._id %>"><%= g.nome %></option><% }) %></select></div>
+    </div>
+    <div class="row"><div><label>Motivo</label><textarea name="motivo" maxlength="1000" required></textarea></div></div>
+    <button>Registra</button>
+  </form>
+</div>
+
+<div class="card scroll">
+  <h2>Storico</h2>
+  <% if (!lista.length) { %><p class="muted">Nessun provvedimento registrato.</p><% } else { %>
+  <table>
+    <thead><tr><th>Data</th><th>Militare</th><th>Categoria</th><th>Motivo</th><th>Emesso da</th><th>Stato</th></tr></thead>
+    <tbody>
+    <% lista.forEach(function(p){ %>
+      <tr>
+        <td><%= d(p.createdAt) %></td>
+        <td><%= nomeCompleto(p.utente) %></td>
+        <td><span class="tag <%= p.tipo %>"><%= p.categoria %></span><%= p.dataScadenza ? ' fino al ' + d(p.dataScadenza) : '' %></td>
+        <td><%= p.motivo %></td>
+        <td><%= nomeCompleto(p.emessoDa) %></td>
+        <td>
+          <% if (p.attivo) { %>
+          <form method="post" action="/provvedimenti/<%= p._id %>/revoca" onsubmit="return confirm('Chiudere questo provvedimento?')" class="inline">
+            <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="sec">Chiudi</button>
+          </form>
+          <% } else { %><span class="muted">Chiuso</span><% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<script>
+(function(){var s=document.getElementById('cat'),g=document.getElementById('gradoBox');
+function u(){var o=s.options[s.selectedIndex];var t=o&&o.dataset.tipo;g.style.display=(t==='promozione'||t==='degradazione')?'block':'none'}
+s.addEventListener('change',u);u();})();
+</script>
+<%- include('partials/footer') %>

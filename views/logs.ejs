@@ -1,0 +1,22 @@
+<%- include('partials/header') %>
+<h1>Registro attività</h1>
+<p class="sub">Tutto ciò che viene fatto nel portale dagli ufficiali (ultimi 300 eventi).</p>
+<form method="get" class="row">
+  <div style="max-width:300px"><label>Filtra per azione</label>
+    <select name="azione" onchange="this.form.submit()">
+      <option value="">Tutte</option>
+      <% azioni.forEach(function(a){ %><option <%= a === azione ? 'selected' : '' %>><%= a %></option><% }) %>
+    </select></div>
+</form>
+<div class="card scroll">
+<table>
+  <thead><tr><th>Data</th><th>Autore</th><th>Azione</th><th>Dettaglio</th><th>Riguarda</th></tr></thead>
+  <tbody>
+  <% logs.forEach(function(l){ %>
+    <tr><td><%= dt(l.createdAt) %></td><td><%= nomeCompleto(l.autore) %></td><td><span class="tag"><%= l.azione %></span></td><td><%= l.descrizione %></td><td><%= l.bersaglio ? nomeCompleto(l.bersaglio) : '' %></td></tr>
+  <% }) %>
+  </tbody>
+</table>
+<% if (!logs.length) { %><p class="muted">Nessun evento.</p><% } %>
+</div>
+<%- include('partials/footer') %>

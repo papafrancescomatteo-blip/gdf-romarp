@@ -1,0 +1,18 @@
+<%- include('partials/header') %>
+<div class="row" style="align-items:center">
+  <div><h1>Gestioni settimanali</h1><p class="sub" style="margin:0"><%= me.ruolo === 'prefettura' ? 'Ultime 3 gestioni.' : 'Storico delle gestioni.' %></p></div>
+  <% if (me.ruolo === 'ufficiale') { %><div style="flex:0"><a class="btn" href="/gestioni/nuova" style="white-space:nowrap">Nuova gestione</a></div><% } %>
+</div>
+<% if (!gestioni.length) { %><div class="card"><p class="muted">Nessuna gestione registrata.</p></div><% } %>
+<% gestioni.forEach(function(g, i){ %>
+<div class="card">
+  <h2>Settimana del <%= d(g.settimana) %><%= g.etichetta ? ' · ' + g.etichetta : '' %></h2>
+  <p class="muted">Compilata da <%= nomeCompleto(g.creataDa) %> il <%= dt(g.createdAt) %></p>
+  <% if (me.ruolo === 'prefettura' || i === 0) { %>
+    <%- include('partials/tabella-gestione', { g: g }) %>
+  <% } else { %>
+    <details><summary>Mostra dettaglio (<%= g.voci.length %> finanzieri)</summary><%- include('partials/tabella-gestione', { g: g }) %></details>
+  <% } %>
+</div>
+<% }) %>
+<%- include('partials/footer') %>

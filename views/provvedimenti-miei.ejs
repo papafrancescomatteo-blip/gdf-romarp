@@ -1,0 +1,22 @@
+<%- include('partials/header') %>
+<h1>I miei provvedimenti</h1>
+<p class="sub">Avvertimenti e sospensioni a tuo carico.</p>
+<div class="card scroll">
+<% if (!miei.length) { %><p class="muted">Nessun provvedimento.</p><% } else { %>
+<table>
+  <thead><tr><th>Data</th><th>Categoria</th><th>Motivo</th><th>Emesso da</th><th>Stato</th></tr></thead>
+  <tbody>
+  <% miei.forEach(function(p){ %>
+    <tr>
+      <td><%= d(p.createdAt) %></td>
+      <td><span class="tag <%= p.tipo %>"><%= p.categoria %></span><%= p.dataScadenza ? ' fino al ' + d(p.dataScadenza) : '' %></td>
+      <td><%= p.motivo %></td>
+      <td><%= nomeCompleto(p.emessoDa) %></td>
+      <td><%= p.attivo ? 'Attivo' : 'Chiuso' %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+<% } %>
+</div>
+<%- include('partials/footer') %>

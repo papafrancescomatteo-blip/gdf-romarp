@@ -1,0 +1,33 @@
+<%- include('partials/header') %>
+<h1>Impostazioni</h1>
+
+<div class="card">
+  <h2>Supervisione allievi</h2>
+  <p class="sub">Link del modulo (es. Google Form) che i finanzieri vedranno in home.</p>
+  <form method="post" action="/impostazioni">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row"><div><label>Link del modulo</label><input name="supervisioneUrl" value="<%= supervisioneUrl %>" placeholder="https://forms.gle/..."></div></div>
+    <button>Salva</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Categorie di provvedimento</h2>
+  <% categorie.forEach(function(c){ %>
+    <div class="link-item">
+      <div><span class="tag <%= c.tipo %>"><%= c.tipo %></span> <%= c.nome %></div>
+      <form method="post" action="/impostazioni/categorie/<%= c._id %>/elimina" onsubmit="return confirm('Eliminare la categoria?')">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="danger">Elimina</button>
+      </form>
+    </div>
+  <% }) %>
+  <form method="post" action="/impostazioni/categorie" style="margin-top:14px">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row">
+      <div><label>Nome categoria</label><input name="nome" required></div>
+      <div style="max-width:220px"><label>Tipo</label><select name="tipo"><option value="avvertimento">Avvertimento</option><option value="sospensione">Sospensione</option><option value="altro">Altro</option></select></div>
+    </div>
+    <button>Aggiungi categoria</button>
+  </form>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>Guardia di Finanza Roma RP</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<% if (me) { %>
+<header class="top">
+  <div class="brand"><span class="logo">GdF</span><div><strong>Guardia di Finanza</strong><small>Comando Provinciale · Roma RP</small></div></div>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/direttive">Direttive</a>
+    <% if (me.ruolo !== 'finanziere') { %><a href="/matricole">Matricole</a><a href="/gestioni">Gestioni</a><% } %>
+    <% if (me.ruolo === 'finanziere' || me.ruolo === 'ufficiale') { %><a href="/provvedimenti">Provvedimenti</a><% } %>
+    <% if (me.ruolo === 'ufficiale') { %><a href="/turni">Turni</a><a href="/logs">Registro</a><a href="/utenti">Utenti</a><a href="/gradi">Gradi</a><a href="/impostazioni">Impostazioni</a><% } %>
+  </nav>
+  <form method="post" action="/logout" class="who">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <span><%= me.grado ? me.grado.nome + ' ' : '' %><%= me.cognome %></span>
+    <button class="link">Esci</button>
+  </form>
+</header>
+<% } %>
+<main class="wrap">
+<% if (flash && path !== '/login') { %><div class="flash <%= flash.type || 'ok' %>"><%= flash.text %></div><% } %>

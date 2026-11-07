@@ -1,0 +1,50 @@
+<%- include('partials/header') %>
+<h1>Gradi</h1>
+<p class="sub">Per le spalline: copia le immagini nella cartella <code>public/gradi/</code> del progetto e indica qui il percorso, ad esempio <code>/gradi/finanziere.png</code>. Ordine più alto = grado più alto.</p>
+
+<div class="card">
+  <h2>Spalline automatiche</h2>
+  <p class="muted">Carica le immagini in <code>public/gradi/</code> chiamandole come il grado (es. <code>finanziere-scelto.png</code>, <code>maresciallo-capo.png</code>): al riavvio e con questo pulsante vengono collegate ai gradi senza immagine.</p>
+  <form method="post" action="/gradi/sync"><input type="hidden" name="_csrf" value="<%= csrf %>"><button>Collega le spalline</button></form>
+</div>
+
+<div class="card">
+  <h2>Nuovo grado</h2>
+  <form method="post" action="/gradi">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="row">
+      <div><label>Nome</label><input name="nome" required></div>
+      <div style="max-width:110px"><label>Ordine</label><input type="number" name="ordine" value="0"></div>
+      <div><label>Immagine (percorso)</label><input name="immagine" placeholder="/gradi/nome.png"></div>
+    </div>
+    <button>Aggiungi</button>
+  </form>
+</div>
+
+<div class="card scroll">
+<table>
+  <thead><tr><th>Spallina</th><th>Modifica</th><th></th></tr></thead>
+  <tbody>
+  <% gradi.forEach(function(g){ %>
+    <tr>
+      <td style="width:90px"><% if (g.immagine) { %><img src="<%= g.immagine %>" alt="" style="height:30px"><% } else { %><span class="muted">—</span><% } %></td>
+      <td>
+        <form method="post" action="/gradi/<%= g._id %>" class="row" style="margin:0;flex-wrap:nowrap">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input name="nome" value="<%= g.nome %>" required>
+          <input type="number" name="ordine" value="<%= g.ordine %>" style="width:80px">
+          <input name="immagine" value="<%= g.immagine %>" placeholder="/gradi/nome.png">
+          <button>Salva</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/gradi/<%= g._id %>/elimina" onsubmit="return confirm('Eliminare questo grado?')" class="inline">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="danger">Elimina</button>
+        </form>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<%- include('partials/footer') %>

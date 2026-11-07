@@ -1,0 +1,16 @@
+<div class="scroll">
+<table>
+  <thead><tr><th>Finanziere</th><th>Matricola</th><th>Ore</th><th>Esito</th><th>Note</th></tr></thead>
+  <tbody>
+  <% g.voci.forEach(function(v){ %>
+    <tr>
+      <td><%= nomeCompleto(v.utente) %></td>
+      <td><%= v.utente && v.utente.matricola ? v.utente.matricola : '—' %></td>
+      <td><%= v.ore %></td>
+      <td><span class="tag <%= /ecc|reg/i.test(v.esito) ? 'ok' : (/ingiust|insuff/i.test(v.esito) ? 'sospensione' : 'avvertimento') %>"><%= v.esito %></span></td>
+      <td><%= v.note || '' %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>

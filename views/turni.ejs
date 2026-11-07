@@ -1,0 +1,39 @@
+<%- include('partials/header') %>
+<h1>Turni di servizio</h1>
+<p class="sub">Chi è in servizio adesso e le ore della settimana in corso (dal <%= d(da) %>).<%= discordOn ? ' Il ruolo Discord è collegato.' : ' Ruolo Discord non configurato.' %></p>
+
+<div class="card scroll">
+  <h2>In servizio ora (<%= aperti.length %>)</h2>
+  <% if (!aperti.length) { %><p class="muted">Nessuno è in servizio.</p><% } else { %>
+  <table>
+    <thead><tr><th>Militare</th><th>Matricola</th><th>Dalle</th><th>Da</th><th></th></tr></thead>
+    <tbody>
+    <% aperti.forEach(function(t){ var min = Math.round((Date.now() - t.inizio) / 60000); %>
+      <tr>
+        <td><%= t.utente.grado ? t.utente.grado.nome + ' ' : '' %><%= nomeCompleto(t.utente) %></td>
+        <td><%= t.utente.matricola || '—' %></td>
+        <td><%= dt(t.inizio) %></td>
+        <td><span class="tag <%= min > 720 ? 'avvertimento' : 'ok' %>"><%= fmtMin(min) %></span></td>
+        <td><form method="post" action="/turni/<%= t._id %>/chiudi" class="inline" onsubmit="return confirm('Chiudere questo turno?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="sec">Chiudi</button></form></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<div class="card scroll">
+  <h2>Classifica ore della settimana</h2>
+  <% if (!classifica.length) { %><p class="muted">Nessun finanziere attivo.</p><% } else { %>
+  <table>
+    <thead><tr><th>#</th><th>Finanziere</th><th>Matricola</th><th>Ore</th></tr></thead>
+    <tbody>
+    <% classifica.forEach(function(r, i){ %>
+      <tr><td><%= i + 1 %></td><td><%= r.u.grado ? r.u.grado.nome + ' ' : '' %><%= nomeCompleto(r.u) %></td><td><%= r.u.matricola || '—' %></td>
+      <td><%= r.min ? fmtMin(r.min) : '' %><%= r.min ? '' : '— nessuna ora' %></td></tr>
+    <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('partials/footer') %>
