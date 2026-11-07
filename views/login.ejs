@@ -1,13 +1,24 @@
 <%- include('partials/header') %>
-<div class="login card">
-  <span class="logo">GdF</span>
-  <h1>Portale Guardia di Finanza</h1>
-  <p class="sub">Comando Provinciale · Roma RP. Accesso riservato al personale.</p>
-  <form method="post" action="/login">
-    <input type="hidden" name="_csrf" value="<%= csrf %>">
-    <div class="row"><div><label>Username</label><input name="username" autocomplete="username" required autofocus></div></div>
-    <div class="row"><div><label>Password</label><input type="password" name="password" autocomplete="current-password" required></div></div>
-    <button>Accedi</button>
-  </form>
+<style>.wrap{max-width:none;margin:0;padding:0}</style>
+<div class="hero">
+  <div class="hero-l">
+    <svg class="shield" viewBox="0 0 100 120" aria-hidden="true"><path d="M50 4 94 20v40c0 28-19 46-44 56C25 106 6 88 6 60V20z" fill="#0f2a43" stroke="#c9a227" stroke-width="4"/><path d="M50 22 78 32v26c0 17-11 29-28 36-17-7-28-19-28-36V32z" fill="none" stroke="#f0d46a" stroke-width="2"/><text x="50" y="68" text-anchor="middle" font-size="26" font-weight="800" fill="#f0d46a" font-family="system-ui">GdF</text></svg>
+    <h1>Guardia di Finanza<br>Roma RP</h1>
+    <p>Portale operativo del Comando Provinciale: turni di servizio, gestioni settimanali, matricole e provvedimenti in un unico posto.</p>
+    <div class="pills"><span class="tag ok">Turni in tempo reale</span><span class="tag">Gestioni settimanali</span><span class="tag">Fascicoli e provvedimenti</span></div>
+  </div>
+  <div class="hero-r">
+    <div class="login card">
+      <h2>Accesso riservato</h2>
+      <p class="sub">Inserisci le credenziali fornite dal Comando.</p>
+      <% if (flash) { %><div class="flash <%= flash.type || 'ok' %>"><%= flash.text %></div><% } %>
+      <form method="post" action="/login">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <div class="row"><div><label>Username</label><input name="username" autocomplete="username" required autofocus></div></div>
+        <div class="row"><div><label>Password</label><input type="password" name="password" autocomplete="current-password" required></div></div>
+        <button class="btn-big" style="width:100%">Accedi al portale</button>
+      </form>
+    </div>
+  </div>
 </div>
-<%- include('partials/footer') %>
+</main></body></html>

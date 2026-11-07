@@ -15,7 +15,7 @@
       <td>
         <form method="post" action="/matricole/<%= u._id %>" class="row" style="margin:0;flex-wrap:nowrap">
           <input type="hidden" name="_csrf" value="<%= csrf %>">
-          <input name="matricola" value="<%= u.matricola %>" placeholder="Matricola" style="width:110px">
+          <input name="matricola" value="<%= u.matricola %>" placeholder="GF-00" style="width:110px">
           <select name="grado">
             <option value="">— nessun grado —</option>
             <% gradi.forEach(function(g){ %><option value="<%= g._id %>" <%= u.grado && String(u.grado._id) === String(g._id) ? 'selected' : '' %>><%= g.nome %></option><% }) %>

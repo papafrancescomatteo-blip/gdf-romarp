@@ -1,17 +1,39 @@
 <%- include('partials/header') %>
-<h1>Benvenuto, <%= me.grado ? me.grado.nome + ' ' : '' %><%= nomeCompleto(me) %></h1>
-<p class="sub"><%= me.ruolo === 'finanziere' ? 'Area Finanzieri' : (me.ruolo === 'ufficiale' ? 'Area Ufficiali' : 'Area Prefettura') %></p>
+<%
+  const ruoloNome = me.ruolo === 'finanziere' ? 'Area Finanzieri' : (me.ruolo === 'ufficiale' ? 'Area Ufficiali' : 'Area Prefettura');
+  const target = 1200; // obiettivo ore settimanali di riferimento: 20h
+  const pct = Math.min(100, Math.round((minSettimana / target) * 100));
+%>
+<div class="tessera">
+  <div class="spal"><% if (me.grado && me.grado.immagine) { %><img src="<%= me.grado.immagine %>" alt="<%= me.grado.nome %>"><% } else { %><span class="muted" style="font-size:.75rem;text-align:center">spallina</span><% } %></div>
+  <div class="info">
+    <div class="muted" style="text-transform:uppercase;letter-spacing:1px;font-size:.72rem"><%= ruoloNome %></div>
+    <div class="nome"><%= nomeCompleto(me) %></div>
+    <div><%= me.grado ? me.grado.nome : 'Grado non assegnato' %></div>
+    <div class="mat"><%= me.matricola || 'GF-—' %></div>
+  </div>
+  <% if (me.ruolo !== 'prefettura') { %>
+  <div class="azione">
+    <span class="stato <%= turno ? 'on' : 'off' %>"><span class="dot"></span><%= turno ? 'In servizio' : 'Fuori servizio' %></span>
+    <% if (turno) { %><div class="timer" id="timer" data-start="<%= turno.inizio.toISOString() %>">00:00:00</div><% } %>
+    <form method="post" action="/turno/<%= turno ? 'fine' : 'inizio' %>">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button class="btn-big <%= turno ? 'btn-stop' : '' %>" style="width:100%"><%= turno ? 'Termina turno' : 'Inizia turno' %></button>
+    </form>
+    <% if (discordOn && !me.discordId) { %><small class="muted">ID Discord non collegato: chiedi a un ufficiale per ricevere il ruolo in automatico.</small><% } %>
+  </div>
+  <% } %>
+</div>
+
+<% if (me.ruolo !== 'prefettura') { %>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Ore di servizio questa settimana</h2><strong><%= fmtMin(minSettimana) %></strong></div>
+  <div class="bar" style="margin-top:12px"><i style="width:<%= pct %>%"></i></div>
+</div>
+<% } %>
 
 <% if (me.ruolo === 'finanziere') { %>
 <div class="grid">
-  <div class="card">
-    <h2>La mia matricola</h2>
-    <div class="grado big-grado">
-      <% if (me.grado && me.grado.immagine) { %><img src="<%= me.grado.immagine %>" alt="<%= me.grado.nome %>"><% } %>
-      <div><strong><%= me.grado ? me.grado.nome : 'Grado non assegnato' %></strong><br><span class="muted">Matricola: <%= me.matricola || '—' %></span></div>
-    </div>
-  </div>
-
   <div class="card">
     <h2>Avvertimenti e sospensioni attivi</h2>
     <% if (!provvedimenti.length) { %><p class="muted">Nessun provvedimento attivo.</p><% } %>
@@ -19,6 +41,13 @@
       <p><span class="tag <%= p.tipo %>"><%= p.categoria %></span> <%= p.motivo %><br><small class="muted"><%= d(p.createdAt) %><%= p.dataScadenza ? ' · fino al ' + d(p.dataScadenza) : '' %></small></p>
     <% }) %>
     <a href="/provvedimenti">Storico completo →</a>
+  </div>
+  <div class="card">
+    <h2>Supervisione allievi</h2>
+    <% if (supervisioneUrl) { %>
+      <p>Compila il modulo per inviare la supervisione degli allievi.</p>
+      <a class="btn" href="<%= supervisioneUrl %>" target="_blank" rel="noopener noreferrer">Invia supervisione</a>
+    <% } else { %><p class="muted">Il modulo non è ancora stato configurato dagli ufficiali.</p><% } %>
   </div>
 </div>
 
@@ -36,34 +65,27 @@
   <% } %>
 </div>
 
-<div class="grid">
-  <div class="card">
-    <h2>Direttive operative</h2>
-    <% if (!direttive.length) { %><p class="muted">Nessuna direttiva pubblicata.</p><% } %>
-    <% direttive.forEach(function(l){ %>
-      <div class="link-item"><div><a href="<%= l.url %>" target="_blank" rel="noopener noreferrer"><%= l.titolo %></a><br><small class="muted"><%= l.descrizione %></small></div></div>
-    <% }) %>
-  </div>
-  <div class="card">
-    <h2>Supervisione allievi</h2>
-    <% if (supervisioneUrl) { %>
-      <p>Compila il modulo per inviare la supervisione degli allievi.</p>
-      <a class="btn" href="<%= supervisioneUrl %>" target="_blank" rel="noopener noreferrer">Invia supervisione</a>
-    <% } else { %><p class="muted">Il modulo non è ancora stato configurato dagli ufficiali.</p><% } %>
-  </div>
+<div class="card">
+  <h2>Direttive operative</h2>
+  <% if (!direttive.length) { %><p class="muted">Nessuna direttiva pubblicata.</p><% } %>
+  <% direttive.forEach(function(l){ %>
+    <div class="link-item"><div><a href="<%= l.url %>" target="_blank" rel="noopener noreferrer"><%= l.titolo %></a><br><small class="muted"><%= l.descrizione %></small></div></div>
+  <% }) %>
 </div>
 
 <% } else if (me.ruolo === 'ufficiale') { %>
 <div class="stats">
   <div class="stat"><b><%= nFinanzieri %></b><span>Finanzieri attivi</span></div>
+  <div class="stat"><b><%= inServizio %></b><span>In servizio ora</span></div>
   <div class="stat"><b><%= nProvvAttivi %></b><span>Provvedimenti attivi</span></div>
-  <div class="stat"><b><%= ultimaGestione ? d(ultimaGestione.settimana) : '—' %></b><span>Ultima gestione (settimana del)</span></div>
+  <div class="stat"><b><%= ultimaGestione ? d(ultimaGestione.settimana) : '—' %></b><span>Ultima gestione</span></div>
 </div>
 <div class="grid">
   <div class="card">
     <h2>Azioni rapide</h2>
     <p><a class="btn" href="/gestioni/nuova">Nuova gestione settimanale</a></p>
     <p><a class="btn sec" href="/provvedimenti">Applica provvedimento</a></p>
+    <p><a class="btn sec" href="/turni">Chi è in servizio</a></p>
     <p><a class="btn sec" href="/matricole">Foglio matricole</a></p>
   </div>
   <div class="card">
@@ -101,5 +123,14 @@
     <% gestioni.forEach(function(g){ %><p>Settimana del <strong><%= d(g.settimana) %></strong> · <%= g.voci.length %> finanzieri</p><% }) %>
   </div>
 </div>
+<% } %>
+
+<% if (turno) { %>
+<script>
+(function(){var el=document.getElementById('timer');if(!el)return;var s=new Date(el.dataset.start).getTime();
+function p(n){return String(n).padStart(2,'0')}
+function t(){var x=Math.max(0,Math.floor((Date.now()-s)/1000));el.textContent=p(Math.floor(x/3600))+':'+p(Math.floor(x%3600/60))+':'+p(x%60)}
+t();setInterval(t,1000);})();
+</script>
 <% } %>
 <%- include('partials/footer') %>

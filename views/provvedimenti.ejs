@@ -13,11 +13,13 @@
           <% finanzieri.forEach(function(u){ %><option value="<%= u._id %>"><%= u.cognome %> <%= u.nome %><%= u.matricola ? ' (' + u.matricola + ')' : '' %></option><% }) %>
         </select></div>
       <div><label>Categoria</label>
-        <select name="categoria" required>
+        <select name="categoria" id="cat" required>
           <option value="">— seleziona —</option>
-          <% categorie.forEach(function(c){ %><option value="<%= c._id %>"><%= c.nome %></option><% }) %>
+          <% categorie.forEach(function(c){ %><option value="<%= c._id %>" data-tipo="<%= c.tipo %>"><%= c.nome %></option><% }) %>
         </select></div>
       <div style="max-width:200px"><label>Scadenza (facoltativa)</label><input type="date" name="dataScadenza"></div>
+      <div id="gradoBox" style="display:none"><label>Nuovo grado</label>
+        <select name="grado"><option value="">— seleziona —</option><% gradi.forEach(function(g){ %><option value="<%= g._id %>"><%= g.nome %></option><% }) %></select></div>
     </div>
     <div class="row"><div><label>Motivo</label><textarea name="motivo" maxlength="1000" required></textarea></div></div>
     <button>Registra</button>
@@ -50,4 +52,9 @@
   </table>
   <% } %>
 </div>
+<script>
+(function(){var s=document.getElementById('cat'),g=document.getElementById('gradoBox');
+function u(){var o=s.options[s.selectedIndex];var t=o&&o.dataset.tipo;g.style.display=(t==='promozione'||t==='degradazione')?'block':'none'}
+s.addEventListener('change',u);u();})();
+</script>
 <%- include('partials/footer') %>
